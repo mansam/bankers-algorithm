@@ -43,12 +43,15 @@ do_some_banking(Limit, Loan, N) ->
     Choice = random:uniform(2),
     case Choice of
       1 ->
+          % request random amount from remaining
+          % credit limit
           Request = random:uniform(Limit - Loan),
           io:format("~p[~p,~p] about to request ~p.~n",
                 [self(), Limit, Loan, Request]),
           banker:request(Request),
           do_some_banking(Limit, Loan + Request, N - 1);
       2 ->
+          % release a random fraction of the held loan
           Release = random:uniform(Loan),
           io:format("~p[~p,~p] about to release ~p.~n",
                 [self(), Limit, Loan, Release]),
