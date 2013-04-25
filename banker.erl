@@ -1,7 +1,7 @@
 % Author: Sam Lucidi
+% banker.erl
 % SE441 Concurrency: Banker's Algorithm
 -module(banker).
-
 -export([attach/1, detach/0, release/1, request/1,
      start/1, status/0]).
 

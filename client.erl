@@ -1,5 +1,7 @@
+% Author: Sam Lucidi
+% client.erl
+% SE441 Concurrency: Banker's Algorithm
 -module(client).
-
 -export([start/2]).
 
 % Spawn a new client process with a limit of Limit
