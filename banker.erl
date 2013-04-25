@@ -1,5 +1,5 @@
 -module(banker).
--export([start/1, status/0, attach/1, detach/0, request/1, release/1, loop/3, sort_by_claim/1]).
+-export([start/1, status/0, attach/1, detach/0, request/1, release/1, loop/3, sort_by_claim/1, check_safety/3]).
 
 %% Client %%
 
@@ -82,8 +82,8 @@ cash_on_hand(Capital, Clients) ->
 
 check_safety(_Capital, [], _NUnits) -> safe;
 check_safety(Capital, Clients, NUnits) ->
-	[LeastClaim | T] = sort_by_claim(Clients),
-	case LeastClaim =< cash_on_hand(Capital, Clients) of
+	[{_Pid, Limit, Loan} | T] = sort_by_claim(Clients),
+	case (Limit - Loan) =< cash_on_hand(Capital, Clients) of
 		true	-> check_safety(Capital, T, NUnits);
 		false	-> unsafe
 	end.
@@ -96,7 +96,7 @@ s_request(Capital, Clients, Pid, NUnits) ->
 	end.
 h_request(_Capital, _NewClients, [], _Pid, _NUnits) -> {error, "Client not attached."};
 h_request(Capital, NewClients, [{Pid, Limit, Loan} | Tail], Pid, NUnits) ->
-	Result = check_safety(Capital, NewClients ++ [{Pid, Limit, Loan}] ++ Tail, NUnits),
+	Result = check_safety(Capital, NewClients ++ [{Pid, Limit, Loan + NUnits}] ++ Tail, NUnits),
 	case Result of
 		safe 	-> NewClients ++ [{Pid, Limit, Loan + NUnits}] ++ Tail;
 		unsafe	-> {error, "Unsafe to grant request."}
