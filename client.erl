@@ -1,23 +1,34 @@
 -module(client).
--export([start/2]).
+-export([start/2, direct_start/2]).
 
 start(Limit, N) ->
+	spawn(client, direct_start, [Limit, N]).
+direct_start(Limit, N) ->
 	banker:attach(Limit),
 	io:format("Attached ~p ~p~n", [N, self()]),
-	for(N, fun(_) -> banker:status() end),
+	do_some_banking(Limit, 0, N),
 	banker:detach(),
 	io:format("Detached ~p ~p~n", [N, self()]).
 
-for(N, Fun) ->
-	for(N, 0, Fun).
-for(_N, _N, _Fun) -> ok;
-for(N, Count, Fun) ->
-	Fun(Count),
-	for(N, Count + 1, Fun).
-
-do_some_banking(Limit, Loan).
+do_some_banking(_Limit, _Loan, 0) -> {ok};
+do_some_banking(Limit, 0, N) ->
+	Request = random:uniform(Limit),
+	io:format("~p[~p,~p] about to request ~p.~n", [self(), Limit, 0, Request]),
+	banker:request(Request), do_some_banking(Limit, Request, N - 1);
+do_some_banking(Limit, Limit, N) ->
+	Release = random:uniform(Limit),
+	io:format("~p[~p,~p] about to release ~p.~n", [self(), Limit, Limit, Release]),
+	banker:release(Release), do_some_banking(Limit, Limit - Release, N - 1);
+do_some_banking(Limit, Loan, N) ->
 	Choice = random:uniform(2),
 	case Choice of
-		1 -> banker:request(), do_some_banking(Limit, Loan);
-		2 -> banker:release(), do_some_banking(Limit, Loan)
+		1 -> 
+				Request = random:uniform(Limit - Loan),
+				io:format("~p[~p,~p] about to request ~p.~n", [self(), Limit, Loan, Request]),
+				banker:request(Request), do_some_banking(Limit, Loan + Request, N - 1);
+		2 ->
+				Release = random:uniform(Loan),
+				io:format("~p[~p,~p] about to release ~p.~n", [self(), Limit, Loan, Release]),
+				banker:release(Release), do_some_banking(Limit, Loan - Release, N - 1)
 	end.
+
