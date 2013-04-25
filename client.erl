@@ -1,8 +1,13 @@
 -module(client).
--export([start/2, direct_start/2]).
+-export([start/2]).
 
+% Spawn a new client process with a limit of Limit
+% that will perform N banking activities before quitting.
 start(Limit, N) ->
-	spawn(client, direct_start, [Limit, N]).
+	spawn(fun () -> direct_start(Limit, N) end).
+
+% 
+%
 direct_start(Limit, N) ->
 	banker:attach(Limit),
 	io:format("Attached ~p ~p~n", [N, self()]),
@@ -10,6 +15,9 @@ direct_start(Limit, N) ->
 	banker:detach(),
 	io:format("Detached ~p ~p~n", [N, self()]).
 
+%
+%
+%
 do_some_banking(_Limit, _Loan, 0) -> {ok};
 do_some_banking(Limit, 0, N) ->
 	Request = random:uniform(Limit),

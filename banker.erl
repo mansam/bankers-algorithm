@@ -1,10 +1,10 @@
 -module(banker).
--export([start/1, status/0, attach/1, detach/0, request/1, release/1, loop/3]).
+-export([start/1, status/0, attach/1, detach/0, request/1, release/1]).
 
 %% Client %%
 
 start(Capital) ->
-	Banker = spawn(banker, loop, [Capital, [], []]),
+	Banker = spawn(fun () -> loop(Capital, [], []) end),
 	register(bank, Banker),
 	Banker.
 
