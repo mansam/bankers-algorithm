@@ -2,8 +2,7 @@
 % banker.erl
 % SE441 Concurrency: Banker's Algorithm
 -module(banker).
--export([attach/1, detach/0, release/1, request/1,
-     start/1, status/0]).
+-export([attach/1, release/1, request/1, start/1, status/0]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%% Client API %%%%%%%%%%%%
@@ -12,7 +11,11 @@
 % Spawn a banker process with a starting capital of Capital,
 % and register it to the atom 'banker'
 start(Capital) ->
-    Banker = spawn(fun () -> loop(Capital, [], []) end),
+    Banker = spawn(fun () -> 
+                        % run as a supervisory process
+                        process_flag(trap_exit, true),
+                        loop(Capital, [], [])
+                    end),
     register(bank, Banker),
     Banker.
 
@@ -24,14 +27,6 @@ attach(Limit) ->
       io:format("Client ~p attached successfully with "
             "limit ~p.~n",
             [self(), Limit]);
-      Any -> io:format("~p~n", [Any])
-    end.
-
-% Request to detach calling process from the bank.
-detach() ->
-    bank ! {self(), detach_},
-    receive
-      {ok} -> io:format("Client ~p detached.~n", [self()]);
       Any -> io:format("~p~n", [Any])
     end.
 
@@ -66,7 +61,8 @@ loop(Capital, Clients, Defered) ->
                 Pid ! {ok}, loop(Capital, NewClients, Defered);
                 Any -> Pid ! Any, loop(Capital, Clients, Defered)
           end;
-      {Pid, detach_} ->
+      % trap a client's death instead of accepting a detach request
+      {'EXIT', Pid, Message} ->
           Result = s_detach(Clients, Pid),
           case Result of
             {ok, NewClients} ->
@@ -206,7 +202,7 @@ s_attach(_Capital, Clients, Pid, Limit) ->
     Result = h_attach([], Clients, Pid, Limit),
     case Result of
       {error, _Message} -> Result;
-      NewClients -> {ok, NewClients}
+      NewClients -> link(Pid), {ok, NewClients}
     end.
 
 % attach handler helper function.

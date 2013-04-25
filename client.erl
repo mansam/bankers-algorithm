@@ -16,7 +16,6 @@ direct_start(Limit, N) ->
     banker:attach(Limit),
     io:format("Attached ~p ~p~n", [N, self()]),
     do_some_banking(Limit, 0, N),
-    banker:detach(),
     io:format("Detached ~p ~p~n", [N, self()]).
 
 % Main loop of execution for client processes.
