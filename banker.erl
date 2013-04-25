@@ -63,45 +63,47 @@ loop(Capital, Clients, Defered) ->
       Result = s_attach(Capital, Clients, Pid, Limit),
       case Result of
         {ok, NewClients} ->
-        Pid ! {ok}, loop(Capital, NewClients, Defered);
-        Any -> Pid ! Any, loop(Capital, Clients, Defered)
+            Pid ! {ok}, loop(Capital, NewClients, Defered);
+            Any -> Pid ! Any, loop(Capital, Clients, Defered)
       end;
       {Pid, detach_} ->
       Result = s_detach(Clients, Pid),
       case Result of
         {ok, NewClients} ->
-        Pid ! {ok},
-        {ResolvedDeferals, NewDefered} = check_defered(Capital,
-                                   NewClients,
-                                   Defered),
-        loop(Capital, ResolvedDeferals, NewDefered);
+            Pid ! {ok},
+            {ResolvedDeferals, NewDefered} = check_defered(
+                                                            Capital,
+                                                            NewClients,
+                                                            Defered),
+            loop(Capital, ResolvedDeferals, NewDefered);
         Any -> Pid ! Any, loop(Capital, Clients, Defered)
       end;
       {Pid, request_, NUnits} ->
       Result = s_request(Capital, Clients, Pid, NUnits),
       case Result of
         {ok, NewClients} ->
-        Pid ! {ok}, loop(Capital, NewClients, Defered);
-        % don't send a message when defering.
+            Pid ! {ok}, loop(Capital, NewClients, Defered);
+            % don't send a message when defering.
         {defer, Message} ->
-        io:format("~p~n", [Message]),
-        loop(Capital, Clients, [{Pid, NUnits} | Defered]);
+            io:format("~p~n", [Message]),
+            loop(Capital, Clients, [{Pid, NUnits} | Defered]);
         Any -> Pid ! Any, loop(Capital, Clients, Defered)
       end;
       {Pid, release_, NUnits} ->
       Result = s_release(Capital, Clients, Pid, NUnits),
       case Result of
         {ok, NewClients} ->
-        Pid ! {ok},
-        {ResolvedDeferals, NewDefered} = check_defered(Capital,
-                                   NewClients,
-                                   Defered),
-        loop(Capital, ResolvedDeferals, NewDefered);
+            Pid ! {ok},
+            {ResolvedDeferals, NewDefered} = check_defered(
+                                                            Capital,
+                                                            NewClients,
+                                                            Defered),
+            loop(Capital, ResolvedDeferals, NewDefered);
         Any -> Pid ! Any, loop(Capital, Clients, Defered)
       end;
       {Pid, status_} ->
-      Pid ! {ok, s_status(Capital, Clients)},
-      loop(Capital, Clients, Defered)
+          Pid ! {ok, s_status(Capital, Clients)},
+          loop(Capital, Clients, Defered)
     end.
 
 % Check whether any defered unsafe requests
@@ -112,24 +114,19 @@ check_defered(Capital, Clients, Defered) ->
 
 h_check_defered(_Capital, Clients, [], NewDefered) ->
     {Clients, NewDefered};
-h_check_defered(Capital, Clients, [{Pid, NUnits} | T],
-        NewDefered) ->
+h_check_defered(Capital, Clients, [{Pid, NUnits} | T], NewDefered) ->
     {Pid, Limit, Loan} = lists:keyfind(Pid, 1, Clients),
     Remaining = lists:keydelete(Pid, 1, Clients),
     Result = check_safety(Capital,
               Remaining ++ [{Pid, Limit, Loan + NUnits}], NUnits),
     case Result of
       safe ->
-      Pid ! {ok},
-      io:format("Banker: Granting delayed request for "
-            "~p to ~p.~n",
-            [NUnits, Pid]),
-      h_check_defered(Capital,
-              Remaining ++ [{Pid, Limit, Loan + NUnits}], T,
-              NewDefered);
+          Pid ! {ok},
+          io:format("Banker: Granting delayed request for ~p to ~p.~n", [NUnits, Pid]),
+          h_check_defered(Capital,
+                  Remaining ++ [{Pid, Limit, Loan + NUnits}], T, NewDefered);
       unsafe ->
-      h_check_defered(Capital, Clients, T,
-              [{Pid, NUnits} | NewDefered])
+          h_check_defered(Capital, Clients, T, [{Pid, NUnits} | NewDefered])
     end.
 
 % Sort a list of clients by their remaining claim
